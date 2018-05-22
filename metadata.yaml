@@ -1,0 +1,14 @@
+name: kafka-rest-confluent
+summary: Kafka REST confluent
+maintainer: Sander Borny <sander.borny@ugent.be>
+description: |
+  Kafka REST confluent
+tags:
+  - misc
+subordinate: false
+provides:
+  endpoint:
+    interface: http
+requires:
+  kafka:
+    interface: kafka
