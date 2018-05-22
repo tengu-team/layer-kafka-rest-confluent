@@ -70,6 +70,7 @@ def setup_kafka_rest():
     
     service_start('confluent-kafka-rest')
     open_port(port)
+    status_set('active', 'ready')
     set_flag('kafka-rest-confluent.setup')
 
 

@@ -1,1 +1,2 @@
 includes: ['layer:basic', 'layer:apt', 'interface:kafka', 'interface:http']
+repo: https://github.com/tengu-team/layer-kafka-rest-confluent.git
