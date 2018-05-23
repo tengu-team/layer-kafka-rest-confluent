@@ -1,0 +1,11 @@
+groups:
+  - 'confluent'
+users:
+  cp-kafka-rest:
+    groups: ['confluent']
+dirs:
+  deployers:
+    path: '/var/log/confluent/kafka-rest'
+    perms: 0755
+    owner: 'cp-kafka-rest'
+    group: 'confluent'

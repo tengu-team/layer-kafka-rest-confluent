@@ -2,7 +2,7 @@
 
 Provides a RESTful interface to a Kafka cluster by [Confluent](https://www.confluent.io/).
 
-Full API overwiew can be found [here](https://docs.confluent.io/current/kafka-rest/docs/api.html#overview).
+By default version 3.1 of the REST API is used to be compliant with the [Kafka Bigtop charm](https://jujucharms.com/kafka/). Full API overview can be found [here](https://docs.confluent.io/3.1.0/kafka-rest/docs/api.html).
 
 ## Usage
 

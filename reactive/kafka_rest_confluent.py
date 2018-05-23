@@ -1,6 +1,7 @@
 import os
 import socket
 import charms.apt
+from jujubigdata import utils
 from charms.reactive import (
     set_flag,
     clear_flag,
@@ -13,8 +14,10 @@ from charmhelpers.core.hookenv import (
     status_set,
     open_port,
     config,
+    log,
+    charm_dir,
 )
-from charmhelpers.core import templating
+from charmhelpers.core.templating import render
 from charmhelpers.core.host import (
     service_running,
     service_start,
@@ -24,11 +27,12 @@ from charmhelpers.core.host import (
 
 @when_not('kafka-rest-confluent.installed')
 def install_kafka_rest_confluent():
-    charms.apt.queue_install(['confluent-kafka-rest'])    
+    charms.apt.queue_install(['confluent-kafka-rest', 'openjdk-8-jre'])
     set_flag('kafka-rest-confluent.installed')
 
 
-@when('apt.installed.confluent-kafka-rest')
+@when('apt.installed.confluent-kafka-rest',
+      'apt.installed.openjdk-8-jre')
 @when_not('kafka.ready')
 def waiting_kafka():
     status_set('blocked', 'Waiting on Kafka relation')
@@ -40,6 +44,22 @@ def waiting_port_config():
 
 
 @when('apt.installed.confluent-kafka-rest',
+      'apt.installed.openjdk-8-jre')
+@when_not('kafka-rest-confluent.systemd')
+def configure_kafka_rest_systemd():
+    # Create user and configuration dir
+    dc = utils.DistConfig(filename='{}/files/setup.yaml'.format(charm_dir()))
+    dc.add_users()
+    dc.add_dirs()
+    # Create systemd service file
+    render(source='confluent-kafka-rest.service.j2',
+           target='/etc/systemd/system/confluent-kafka-rest.service',
+           context={})
+    set_flag('kafka-rest-confluent.systemd')
+
+
+@when('apt.installed.confluent-kafka-rest',
+      'apt.installed.openjdk-8-jre',
       'config.set.port',
       'kafka.ready')
 @when_not('kafka-rest-confluent.setup')
@@ -51,22 +71,22 @@ def setup_kafka_rest():
     for broker in kafka.kafkas():
         kafka_brokers.append("{}:{}".format(broker['host'], broker['port']))
     zookeepers = []
-    for zookeeper in kafka.zookeepers():
-        zookeepers.append("{}:{}".format(zookeeper['host'], zookeeper['port']))
+    for zoo in kafka.zookeepers():
+        zookeepers.append("{}:{}".format(zoo['host'], zoo['port']))
     # Remove duplicate Zookeeper entries since every Kafka broker unit
     # sends all Zookeeper info.
     zookeepers = list(set(zookeepers))
     port = config().get('port')
 
-    templating.render(source="kafka-rest.properties.j2",
-                      target='/etc/kafka-rest/kafka-rest.properties',
-                      context={
-                          'id': os.environ['JUJU_UNIT_NAME'].replace('/', '-'),
-                          'zookeepers': zookeepers,
-                          'brokers': kafka_brokers,
-                          'hostname': socket.gethostname(),
-                          'listener': port,
-                      })
+    render(source="kafka-rest.properties.j2",
+           target='/etc/kafka-rest/kafka-rest.properties',
+           context={
+               'id': os.environ['JUJU_UNIT_NAME'].replace('/', '-'),
+               'zookeepers': zookeepers,
+               'brokers': kafka_brokers,
+               'hostname': socket.gethostname(),
+               'listener': str(port),
+            })
     
     service_start('confluent-kafka-rest')
     open_port(port)
